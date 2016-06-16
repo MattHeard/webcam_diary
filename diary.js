@@ -5,7 +5,7 @@ var previewVideo = document.getElementById("previewVideo");
 var recordedVideo = document.getElementById("recordedVideo");
 var recordButton = document.getElementById("recordButton");
 var stopButton = document.getElementById("stopButton");
-var canvas = document.getElementById("canvas");
+var recordedVideos = document.getElementById("recordedVideos");
 var height = 300;
 var width = 400;
 var mediaRecorder = null;
@@ -41,20 +41,35 @@ var devicesCallback = function(devices) {
   startPreviewVideo();
 };
 
-var setupCanvas = function() {
-  canvas.setAttribute("width", width);
-  canvas.setAttribute("height", height);
+var onStart = function() {
+  stopButton.disabled = false;
+  recordButton.disabled = true;
 };
 
 var onStop = function() {
-  console.log("Stopped recording");
+  stopButton.disabled = true;
+  recordButton.disabled = false;
 
   if (videoChunks.length > 0) {
     var videoBlob = new Blob(videoChunks, { type: "video/webm" });
     videoChunks = [];
 
     var videoURL = URL.createObjectURL(videoBlob);
-    recordedVideo.src = videoURL;
+
+    var topVideoInStack = document.createElement("video");
+    topVideoInStack.autoplay = true;
+    topVideoInStack.muted = true;
+    topVideoInStack.loop = true;
+    topVideoInStack.width = "400";
+    topVideoInStack.height = "300";
+
+    topVideoInStack.src = videoURL;
+
+    if (!!recordedVideos.firstChild) {
+      recordedVideos.insertBefore(topVideoInStack, recordedVideos.firstChild);
+    } else {
+      recordedVideos.appendChild(topVideoInStack);
+    }
 
     console.log("Playing recorded video");
   }
@@ -75,9 +90,7 @@ var recordAVideoClip = function() {
     console.log("Error: ", event);
   };
 
-  mediaRecorder.onstart = function() {
-    console.log("Started recording");
-  };
+  mediaRecorder.onstart = onStart;
 
   mediaRecorder.onstop = onStop;
 };
@@ -103,7 +116,6 @@ var addButtonListeners = function() {
 };
 
 var init = function() {
-  setupCanvas();
   navigator.mediaDevices.enumerateDevices().then(devicesCallback);
   addButtonListeners();
 };

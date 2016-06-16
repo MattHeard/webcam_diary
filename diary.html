@@ -2,13 +2,15 @@
 <html>
   <head>
     <title>Webcam Diary</title>
+    <style>
+      button { font-size: large; }
+    </style>
   </head>
   <body>
     <video id="previewVideo" autoplay muted width="400" height="300"></video>
     <button id="recordButton">Record</button>
-    <button id="stopButton">Stop</button>
-    <canvas id="canvas" style="display: none;"></canvas>
-    <video id="recordedVideo" autoplay muted loop width="400" height="300"></video>
+    <button id="stopButton" disabled>Stop</button>
+    <div id="recordedVideos"></div>
     <script src="diary.js"></script>
   </body>
 </html>
