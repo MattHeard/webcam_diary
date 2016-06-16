@@ -12,3 +12,8 @@ To Do
 4. Collect videos into a timeline.
 5. Share timelines over P2P.
 6. Share videos over P2P.
+
+Browser Support
+---------------
+
+* Chrome v51
