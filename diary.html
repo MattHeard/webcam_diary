@@ -4,10 +4,11 @@
     <title>Webcam Diary</title>
   </head>
   <body>
-    <video id="video" autoplay muted width="400" height="300"></video>
-    <button id="button">Take photo</button>
+    <video id="previewVideo" autoplay muted width="400" height="300"></video>
+    <button id="recordButton">Record</button>
+    <button id="stopButton">Stop</button>
     <canvas id="canvas" style="display: none;"></canvas>
-    <img id="img">
+    <video id="recordedVideo" autoplay muted loop width="400" height="300"></video>
     <script src="diary.js"></script>
   </body>
 </html>

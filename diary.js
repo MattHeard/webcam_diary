@@ -1,16 +1,21 @@
+"use strict";
+
 var deviceId = null;
-var video = document.getElementById("video");
-var button = document.getElementById("button");
+var previewVideo = document.getElementById("previewVideo");
+var recordedVideo = document.getElementById("recordedVideo");
+var recordButton = document.getElementById("recordButton");
+var stopButton = document.getElementById("stopButton");
 var canvas = document.getElementById("canvas");
-var img = document.getElementById("img");
-var width = 400;
 var height = 300;
+var width = 400;
+var mediaRecorder = null;
+var mediaStream = null;
+var videoChunks = [];
 
 var initialiseVideoStream = function(stream) {
-  var mediaStream = stream;
+  mediaStream = stream;
 
-  var video = document.getElementById("video");
-  video.src = URL.createObjectURL(mediaStream);
+  previewVideo.src = URL.createObjectURL(mediaStream);
 };
 
 var videoConstraints = {
@@ -21,9 +26,7 @@ var videoConstraints = {
   }
 };
 
-var nextWebCam = function() {
-  console.log(navigator.webkitGetUserMedia);
-
+var startPreviewVideo = function() {
   navigator.webkitGetUserMedia(
     videoConstraints,
     initialiseVideoStream,
@@ -35,7 +38,7 @@ var devicesCallback = function(devices) {
   var device = devices[0];
   deviceId = device.deviceId;
 
-  nextWebCam();
+  startPreviewVideo();
 };
 
 var setupCanvas = function() {
@@ -43,35 +46,65 @@ var setupCanvas = function() {
   canvas.setAttribute("height", height);
 };
 
-var takeAPicture = function() {
-  var context = canvas.getContext("2d");
-  context.drawImage(video, 0, 0, width, height);
+var onStop = function() {
+  console.log("Stopped recording");
 
-  var data = canvas.toDataURL("image/png");
-  img.setAttribute("src", data);
+  if (videoChunks.length > 0) {
+    var videoBlob = new Blob(videoChunks, { type: "video/webm" });
+    videoChunks = [];
+
+    var videoURL = URL.createObjectURL(videoBlob);
+    recordedVideo.src = videoURL;
+
+    console.log("Playing recorded video");
+  }
 };
 
-var addButtonListener = function() {
-  button.addEventListener("click", function(event) {
-    takeAPicture();
+var recordAVideoClip = function() {
+  var options = { mimeType: "video/webm;codecs=vp9" };
+  mediaRecorder = new MediaRecorder(mediaStream, options);
+
+  mediaRecorder.start(1);
+
+  mediaRecorder.ondataavailable = function(event) {
+    videoChunks.push(event.data);
+  };
+
+  mediaRecorder.onerror = function(event) {
+    console.log("Error: ", event);
+  };
+
+  mediaRecorder.onstart = function() {
+    console.log("Started recording");
+  };
+
+  mediaRecorder.onstop = onStop;
+};
+
+var stopRecording = function() {
+  if (!!mediaRecorder) {
+    mediaRecorder.stop();
+
+    mediaRecorder = null;
+  }
+};
+
+var addButtonListeners = function() {
+  recordButton.addEventListener("click", function(event) {
+    recordAVideoClip();
+    event.preventDefault();
+  }, false);
+
+  stopButton.addEventListener("click", function(event) {
+    stopRecording();
     event.preventDefault();
   }, false);
 };
 
-var clearImage = function() {
-  var context = canvas.getContext("2d");
-  context.fillStyle = "#AAA";
-  context.fillRect(0, 0, canvas.width, canvas.height);
-
-  var data = canvas.toDataURL("image/png");
-  img.setAttribute("src", data);
-};
-
 var init = function() {
   setupCanvas();
-  clearImage();
   navigator.mediaDevices.enumerateDevices().then(devicesCallback);
-  addButtonListener();
+  addButtonListeners();
 };
 
 init();
