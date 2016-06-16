@@ -65,10 +65,13 @@ var onStop = function() {
 
     topVideoInStack.src = videoURL;
 
+    var topVideoDiv = document.createElement("div");
+    topVideoDiv.appendChild(topVideoInStack);
+
     if (!!recordedVideos.firstChild) {
-      recordedVideos.insertBefore(topVideoInStack, recordedVideos.firstChild);
+      recordedVideos.insertBefore(topVideoDiv, recordedVideos.firstChild);
     } else {
-      recordedVideos.appendChild(topVideoInStack);
+      recordedVideos.appendChild(topVideoDiv);
     }
 
     console.log("Playing recorded video");
