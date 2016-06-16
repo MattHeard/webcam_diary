@@ -64,7 +64,8 @@ var recordAVideoClip = function() {
   var options = { mimeType: "video/webm;codecs=vp9" };
   mediaRecorder = new MediaRecorder(mediaStream, options);
 
-  mediaRecorder.start(1);
+  var numberOfSecondsPerVideoChunk = 1;
+  mediaRecorder.start(numberOfSecondsPerVideoChunk);
 
   mediaRecorder.ondataavailable = function(event) {
     videoChunks.push(event.data);
