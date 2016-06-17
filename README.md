@@ -17,3 +17,12 @@ Browser Support
 ---------------
 
 * Chrome v51
+
+Emacs
+-----
+
+This project was written entirely in an Emacs editor. Helping me use Emacs for the first time were:
+
+* [Steve Purcell](https://twitter.com/sanityinc),
+* [Kieran Trezona-le Comte](https://twitter.com/treLeComte), and
+* [Van Veñegas](https://fartmanteau.blogspot.co.nz)
