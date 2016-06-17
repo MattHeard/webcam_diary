@@ -1,16 +1,24 @@
 "use strict";
 
-var deviceId = null;
 var previewVideo = document.getElementById("previewVideo");
 var recordedVideo = document.getElementById("recordedVideo");
 var recordButton = document.getElementById("recordButton");
 var stopButton = document.getElementById("stopButton");
 var recordedVideos = document.getElementById("recordedVideos");
+var magnetLink = document.getElementById("magnetLink");
+var remoteVideo = document.getElementById("remoteVideo");
+var inputMagnetLink = document.getElementById("inputMagnetLink");
+var getRemoteVideoButton = document.getElementById("getRemoteVideoButton");
+
+var deviceId = null;
 var height = 300;
 var width = 400;
 var mediaRecorder = null;
 var mediaStream = null;
 var videoChunks = [];
+var database = null;
+var webTorrentClient = null;
+var lastVideoBlob = null;
 
 var initialiseVideoStream = function(stream) {
   mediaStream = stream;
@@ -30,7 +38,7 @@ var startPreviewVideo = function() {
   navigator.webkitGetUserMedia(
     videoConstraints,
     initialiseVideoStream,
-    function(err) { console.log(err); }
+    function(err) { console.err(err); }
   );
 };
 
@@ -46,6 +54,45 @@ var onStart = function() {
   recordButton.disabled = true;
 };
 
+var pushVideoOntoStack = function(videoBlob) {
+  var videoURL = URL.createObjectURL(videoBlob);
+
+  var topVideoInStack = document.createElement("video");
+  topVideoInStack.autoplay = true;
+  topVideoInStack.muted = true;
+  topVideoInStack.loop = true;
+  topVideoInStack.width = "400";
+  topVideoInStack.height = "300";
+
+  topVideoInStack.src = videoURL;
+
+  var topVideoDiv = document.createElement("div");
+  topVideoDiv.appendChild(topVideoInStack);
+
+  if (!!recordedVideos.firstChild) {
+    recordedVideos.insertBefore(topVideoDiv, recordedVideos.firstChild);
+  } else {
+    recordedVideos.appendChild(topVideoDiv);
+  }
+
+  lastVideoBlob = videoBlob;
+};
+
+var storeVideo = function(videoBlob) {
+  var objectStore = database.transaction("videos", "readwrite").objectStore("videos");
+
+  var key = Date.now();
+  objectStore.put(videoBlob, key);
+};
+
+var updateMagnetLink = function(torrent) {
+  magnetLink.innerHTML = torrent.magnetURI;
+};
+
+var seedVideo = function(videoBlob) {
+  webTorrentClient.seed(videoBlob, updateMagnetLink);
+};
+
 var onStop = function() {
   stopButton.disabled = true;
   recordButton.disabled = false;
@@ -54,27 +101,11 @@ var onStop = function() {
     var videoBlob = new Blob(videoChunks, { type: "video/webm" });
     videoChunks = [];
 
-    var videoURL = URL.createObjectURL(videoBlob);
+    pushVideoOntoStack(videoBlob);
 
-    var topVideoInStack = document.createElement("video");
-    topVideoInStack.autoplay = true;
-    topVideoInStack.muted = true;
-    topVideoInStack.loop = true;
-    topVideoInStack.width = "400";
-    topVideoInStack.height = "300";
+    storeVideo(videoBlob);
 
-    topVideoInStack.src = videoURL;
-
-    var topVideoDiv = document.createElement("div");
-    topVideoDiv.appendChild(topVideoInStack);
-
-    if (!!recordedVideos.firstChild) {
-      recordedVideos.insertBefore(topVideoDiv, recordedVideos.firstChild);
-    } else {
-      recordedVideos.appendChild(topVideoDiv);
-    }
-
-    console.log("Playing recorded video");
+    seedVideo(videoBlob);
   }
 };
 
@@ -90,7 +121,7 @@ var recordAVideoClip = function() {
   };
 
   mediaRecorder.onerror = function(event) {
-    console.log("Error: ", event);
+    console.err("Error: ", event);
   };
 
   mediaRecorder.onstart = onStart;
@@ -106,6 +137,12 @@ var stopRecording = function() {
   }
 };
 
+var showDownloadedVideo = function(torrent) {
+  torrent.files[0].getBlobURL(function(error, blobURL) {
+    remoteVideo.src = blobURL;
+  });
+};
+
 var addButtonListeners = function() {
   recordButton.addEventListener("click", function(event) {
     recordAVideoClip();
@@ -116,9 +153,55 @@ var addButtonListeners = function() {
     stopRecording();
     event.preventDefault();
   }, false);
+
+  getRemoteVideoButton.addEventListener("click", function(event) {
+    var magnetURI = inputMagnetLink.value;
+    webTorrentClient.add(magnetURI, showDownloadedVideo);
+  }, false);
+};
+
+var upgradeDatabase = function(event) {
+  database = event.target.result;
+  database.createObjectStore("videos");
+};
+
+var openCursorSuccess = function(event) {
+  var cursor = event.target.result;
+
+  if (cursor) {
+    var videoBlob = cursor.value;
+    pushVideoOntoStack(videoBlob);
+
+    cursor.continue();
+  }
+};
+
+var setupDatabase = function() {
+  var databaseName = "videos";
+  var databaseVersion = 3;
+  var databaseRequest = indexedDB.open(databaseName, databaseVersion);
+
+  databaseRequest.onsuccess = function(event) {
+    database = event.target.result;
+    var objectStore = database.transaction("videos", "readwrite").objectStore("videos");
+
+    objectStore.openCursor().onsuccess = openCursorSuccess;
+  };
+
+  databaseRequest.onerror = function() {
+    console.err("database access failed");
+  };
+
+  databaseRequest.onupgradeneeded = upgradeDatabase;
+};
+
+var setupWebTorrentClient = function() {
+  webTorrentClient = new WebTorrent();
 };
 
 var init = function() {
+  setupWebTorrentClient();
+  setupDatabase();
   navigator.mediaDevices.enumerateDevices().then(devicesCallback);
   addButtonListeners();
 };

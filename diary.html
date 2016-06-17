@@ -3,15 +3,26 @@
   <head>
     <title>Webcam Diary</title>
     <style>
-      button { font-size: large; }
+      input, button { font-size: large; }
     </style>
+    <script src="https://cdn.jsdelivr.net/webtorrent/latest/webtorrent.min.js"></script>
   </head>
   <body>
-    <video id="previewVideo" autoplay muted width="400" height="300"></video>
+    <div>
+      <video id="previewVideo" autoplay muted width="400" height="300"></video>
+    </div>
     <div>
       <button id="recordButton">Record</button>
       <button id="stopButton" disabled>Stop</button>
     </div>
+    <div>
+      <video id="remoteVideo" autoplay muted width="400" height="300"></video>
+    </div>
+    <div>
+      <input id="inputMagnetLink"></input>
+      <button id="getRemoteVideoButton">Get Remote Video</button>
+    </div>
+    <div><blockquote id="magnetLink" style="width: '400';"></blockquote></div>
     <div id="recordedVideos"></div>
     <script src="diary.js"></script>
   </body>
